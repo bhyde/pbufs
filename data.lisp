@@ -17,24 +17,41 @@
 (defvar *current-namespace* nil)
 
 (defclass namespace-node ()
-  ((parent? :type namespace-node
-            :initform *current-namespace*
+  ((spelling :type string 
+             :accessor spelling-of-namespace-node
+             :initarg :spelling)
+   (parent? :type namespace-node
             :accessor parent?-of-namespace-node)))
+
+(defmethod print-object ((x namespace-node) stream)
+  (print-unreadable-object (x stream :type t :identity t)
+    (with-slots (spelling) x
+      (format stream "~A" (if (slot-boundp x 'spelling) spelling '<name-unbound>)))))
 
 (defclass namespace (namespace-node)
   ((elements :type list
              :accessor elements-of-namespace
              :initform nil)))
 
-(defclass namespace-element (namespace-node)
-  ((spelling :type string 
-             :accessor spelling-of-namespace-element
-             :initarg :spelling)))
+(defgeneric add-child-to-namespace (t t))
 
-(defmethod print-object ((x namespace-element) stream)
-  (print-unreadable-object (x stream :type t :identity t)
-    (with-slots (spelling) x
-      (format stream "~A" (if (slot-boundp x 'spelling) spelling '<name-unbound>)))))
+(defmethod add-child-to-namespace ((parent namespace) (child namespace-node))
+  (with-slots (elements) parent
+    (with-slots (parent? spelling) child
+      (assert (not (find spelling elements 
+                         :key #'spelling-of-namespace-node
+                         :test #'string=))
+              () "Name ~A used twice in ~A ~A" 
+              spelling (type-of parent) (spelling-of-namespace-node parent))
+      (setf elements (append elements (list child)))
+      (setf parent? parent)
+      child)))
+
+
+(defclass namespace-element (namespace-node)
+  ())
+
+
 
 
 (defclass unknown-namespace-element (namespace-element)
@@ -43,28 +60,29 @@
 (defclass basetype-namespace-element (namespace-element)
   ())
 
-(defclass root-namespace (namespace namespace-element)
+(defclass root-namespace (namespace)
   ())
 
-(defclass package-namespace (namespace namespace-element)  ;; can't use "package"
+(defclass package-namespace (namespace)  ;; can't use "package"
+  ((all-enumeration-constants :initform nil)
+   (all-usertypes :initform nil)))
+
+(defclass root-namespace (namespace)
   ())
 
-(defclass root-namespace (namespace namespace-element)
-  ())
-
-(defclass namespace-of-unknown-names (namespace namespace-element)
+(defclass namespace-of-unknown-names (namespace)
   ())
 
 (defclass extension-range-declaration ()
   ((lower-limit :type integer :initarg :lower-limit)
    (upper-limit :type integer :initarg :upper-limit)))
                 
-(defclass message (namespace namespace-element)
+(defclass message (namespace)
   ((declared-extension-range? :type extension-range-declaration
                              :accessor declared-extension-range?-of-message
                              :initform nil)))
 
-(defclass process (namespace namespace-element)
+(defclass process (namespace)
   ())
 
 (defclass field (namespace-element)
@@ -97,17 +115,13 @@
           :initarg :reply
           :accessor reply-of-namespace-element)))
 
-(defmethod initialize-instance :after ((name namespace-element) &rest args)
-  (declare (ignore args))
-  (unless (typep name 'root-namespace)
-    (push name (elements-of-namespace (parent?-of-namespace-node name)))))
   
 (defvar *root-namespace* (make-instance 'root-namespace :spelling "%root%"))
 
 (defun find-name (spelling namespace)
   (labels ((recure (namespace)
              (or (find spelling (elements-of-namespace namespace) 
-                       :key #'spelling-of-namespace-element
+                       :key #'spelling-of-namespace-node
                        :test #'string=)
                  (and (parent?-of-namespace-node namespace)
                       (recure (parent?-of-namespace-node namespace))))))
