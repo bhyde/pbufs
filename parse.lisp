@@ -94,8 +94,6 @@
       (setf reply the-reply))
     rpc)
 
-(define-reduction reduce-user-typename (spelling)
-  (list :TBD-typename spelling))
 
 
 ;;;; Parsing: Define Terminals
@@ -166,7 +164,7 @@
            (or (find-name spelling *current-namespace*)
                (intern-name *namespace-or-unknowns*)))))
 (deftoken :name-path ("[a-zA-Z][\\\w.]*")
-  (intern-name-path (token-text) *current-namespace*))
+  (split #\. (token-text)))
 (deftoken :comment ((:sequence "//" (:greedy-repetition 0 nil :everything) (:char-class #\newline #\return)))
   :comment)
 
@@ -211,8 +209,8 @@
                 :int-value
                 :float-value
                 :string-value
-                :name
-                :name-path))
+                :name-path
+                :name))
 
   (file-contents
    (decls #'reduce-file-contents))
@@ -296,7 +294,8 @@
    (user-typename #'identity))
 
   (user-typename
-   (:name #'reduce-user-typename))
+   (:name-path   #'identity)
+   (:name        #'list))
 
   (basic-typename
    (:double #'identity)
@@ -317,6 +316,53 @@
 
 
 
+
+
+;;;; Parsing: In pass 2 we resolve names, type names actually.
+
+(defun find-in-namespace (spelling namespace)
+  (find spelling (elements-of-namespace namespace)
+        :key #'spelling-of-namespace-node
+        :test #'string=))
+
+(defun lookup-name-path (namepath namespace-stack)
+  (let ((root? 
+         (find (first namepath)
+               namespace-stack
+               :test #'find-in-namespace)))
+    (labels ((check (pred)
+               (unless pred
+                 (error "Unable to resolve ~{~A.~}" namepath)))
+             (recure (names namespace)
+               (let ((next-node? 
+                      (find-in-namespace (car names) namespace)))
+                 (check next-node?)
+                 (if (rest names)
+                     (recure (rest names) next-node?)
+                     next-node?))))
+      (check root?)
+      (recure namepath root?))))
+  
+(defun pass-2 (package-namespace)
+  ;; Clear all-enumeration-constants for generational GC.
+  (with-slots (all-enumeration-constants) *current-package*
+    (setf all-enumeration-constants nil))
+  ;; Sweep over the tree, resolve symbols now that we know them.
+  (let ((namespace-stack ()))
+    (declare (special namespace-stack))
+    (labels ((recure (namespace)
+               (loop for child in (elements-of-namespace namespace)
+                  do (typecase child
+                       (namespace
+                        (let ((namespace-stack (cons child namespace-stack)))
+                          (declare (special namespace-stack))
+                          (recure child)))
+                       (field
+                        (with-slots (type) child
+                          (when (consp type)
+                            (setf type (lookup-name-path type namespace-stack)))))))))
+      (recure package-namespace))))
+
 ;;;; Parsing: Main Entry point.
 
 (defun parse-proto-string (package-name-spelling string)
@@ -332,7 +378,7 @@
                    (print (list :token *token-kind* *token-value*))
                    (values *token-kind* *token-value*)))
           (parse-with-lexer #'outter-tokenizer *proto-file-parse-tables*)))
-      *current-package*)))
+      (pass-2 *current-package*))))
 
 (defun parse-proto-file (pathname)
   (let ((name (pathname-name pathname)))

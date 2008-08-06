@@ -47,12 +47,8 @@
       (setf parent? parent)
       child)))
 
-
 (defclass namespace-element (namespace-node)
   ())
-
-
-
 
 (defclass unknown-namespace-element (namespace-element)
   ())
@@ -64,8 +60,7 @@
   ())
 
 (defclass package-namespace (namespace)  ;; can't use "package"
-  ((all-enumeration-constants :initform nil)
-   (all-usertypes :initform nil)))
+  ((all-enumeration-constants :initform nil)))
 
 (defclass root-namespace (namespace)
   ())
@@ -90,6 +85,7 @@
          :accessor nary-of-namespace-element
          :initarg :nary)
    (type :type namespace-element
+         :accessor type-of-field
          :initarg :type)
    (index :type fixnum)
    (default-value :type t 
