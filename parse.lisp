@@ -1,5 +1,7 @@
 ;;; -*- mode: lisp -*-
 
+;; Copyright © 2008 Ben Hyde, Licensed under the Apache License, Version 2.0.
+
 (in-package "PBUFS")
 
 ;;; Parsing: Dynamic State & Reduction functions
@@ -157,14 +159,14 @@
 (deftoken :open-quote (#\") (scan-quoted-string))  ;; leads to :string-value
 (deftoken :int-value ("([+-]|)\\\d+") (parse-integer (token-text)))
 (deftoken :float-value ("TBDFLOATS") *token-kind*)
+(deftoken :name-path ("[a-zA-Z][\\\w]*\\\.[a-zA-Z][\\\w.]*")
+  (split #\. (token-text)))
 (deftoken :name ("[a-zA-Z]\\\w*")
   (token-text)
   #+nil (let ((spelling (token-text)))
           (print
            (or (find-name spelling *current-namespace*)
                (intern-name *namespace-or-unknowns*)))))
-(deftoken :name-path ("[a-zA-Z][\\\w.]*")
-  (split #\. (token-text)))
 (deftoken :comment ((:sequence "//" (:greedy-repetition 0 nil :everything) (:char-class #\newline #\return)))
   :comment)
 
@@ -348,7 +350,7 @@
   (with-slots (all-enumeration-constants) *current-package*
     (setf all-enumeration-constants nil))
   ;; Sweep over the tree, resolve symbols now that we know them.
-  (let ((namespace-stack ()))
+  (let ((namespace-stack (list package-namespace)))
     (declare (special namespace-stack))
     (labels ((recure (namespace)
                (loop for child in (elements-of-namespace namespace)
@@ -361,7 +363,8 @@
                         (with-slots (type) child
                           (when (consp type)
                             (setf type (lookup-name-path type namespace-stack)))))))))
-      (recure package-namespace))))
+      (recure package-namespace)
+      package-namespace)))
 
 ;;;; Parsing: Main Entry point.
 

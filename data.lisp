@@ -1,6 +1,9 @@
 ;;; -*- mode: lisp -*-
 
+;; Copyright © 2008 Ben Hyde, Licensed under the Apache License, Version 2.0.
+
 (in-package "PBUFS")
+
 
 ;;; We parse the proto file into a tree of classes, top down.
 

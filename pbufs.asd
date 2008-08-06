@@ -1,5 +1,7 @@
 ;;; -*- mode: lisp -*-
 
+;; Copyright © 2008 Ben Hyde, Licensed under the Apache License, Version 2.0.
+
 (defsystem pbufs
     :author "Ben Hyde"
     :licence "Apache 2.0"

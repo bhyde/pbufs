@@ -1,5 +1,7 @@
 Toward a Lisp version of Google's "Protocol Buffers"
 
+Copyright © 2008 Ben Hyde, Licensed under the Apache License, Version 2.0.
+
 To use this load the asd, and then use pbufs::parse-proto-string or pbufs::parse-proto-file; then you can inspect the result to see what you get; while reading the class definitions in data.lisp to get a hint of what was intended.
 
 Today, there isn't any code to marshal/de-marshal the messages.

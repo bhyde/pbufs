@@ -2,6 +2,8 @@
 
 (in-package "PBUFS")
 
+;; Copyright © 2008 Ben Hyde, Licensed under the Apache License, Version 2.0.
+
 ;;;; Some utilities
 
 (defmacro defvar-for-macro (name &optional (value nil value-p) (doc nil doc-p))
