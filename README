@@ -1,1 +1,13 @@
 Toward a Lisp version of Google's "Protocol Buffers"
+
+To use this load the asd, and then use pbufs::parse-proto-string or pbufs::parse-proto-file; then you can inspect the result to see what you get; while reading the class definitions in data.lisp to get a hint of what was intended.
+
+Today, there isn't any code to marshal/de-marshal the messages.
+
+The data structure outlined in data.lisp is used to hold the parse of a .proto file.  Tokenizer and parse.lisp together implement that parsing.  I lack a good pool of example .proto files, what few I've collected are in the examples directory.
+
+I don't think I actually understand the scope rules; for example I don't let you make forward references to enum constants, but I do let you make forward reference to user type names.  That's probably not right :).
+
+I guess I should write up some marshaling/demarshaling, but again I don't have test vectors :(.
+
+
